@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1d2733">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="王を討て！">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>王を討て！</title>
+<link rel="stylesheet" href="css/ws_simple.css?v=20261028a">
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="labels"></div>
+
+<!-- 上部：生存人数・残り時間・王のHP -->
+<div id="top" class="hud hidden">
+  <div class="side blue">
+    <span class="tag">自軍</span><b id="aliveB">40</b><span class="unit">人</span>
+    <span class="kingbar" title="自軍の王のHP"><span class="crown">👑</span><span class="bar"><i id="kingB"></i></span><span id="kingBn" class="hpn">200</span></span>
+  </div>
+  <div id="clock">5:00</div>
+  <div class="side red">
+    <span class="kingbar" title="敵軍の王のHP"><span class="crown">👑</span><span class="bar"><i id="kingR"></i></span><span id="kingRn" class="hpn">200</span></span>
+    <b id="aliveR">40</b><span class="unit">人</span><span class="tag">敵軍</span>
+  </div>
+  <button id="btnSound" class="iconbtn" aria-label="効果音のオン・オフ">🔊</button>
+  <button id="btnPause" class="iconbtn menubtn" aria-label="メニュー（一時停止・タイトルへ戻る）">☰<span class="mlabel">メニュー</span></button>
+</div>
+
+<!-- 下部：自軍の3部隊 -->
+<div id="cards" class="hud hidden"></div>
+<div id="hint" class="hud hidden"></div>
+<div id="toasts"></div>
+
+<!-- タイトル -->
+<div id="title" class="overlay">
+  <div class="box">
+    <h1>王を<span>討て！</span></h1>
+    <p class="lead">部隊に<b>「移動」</b>と<b>「攻撃」</b>を命じ、<b>敵の王</b>を倒せ。戦い方は兵士たちが自分で判断します。<br>
+      <span class="sub">敵の王を倒せば勝利・自軍の王が倒されたら敗北・5分で引き分け</span></p>
+    <div id="diffsel" class="diffsel"></div>
+    <div id="levels"></div>
+    <button id="btnHowto" class="ghost">操作方法</button>
+    <button id="btnSoundT" class="ghost">効果音：オン</button>
+    <button id="btnFullT" class="ghost fsbtn">全画面</button>
+    <p class="sndstat note small"></p>
+  </div>
+</div>
+
+<!-- 部隊編成（レベル3・4） -->
+<div id="compose" class="overlay hidden">
+  <div class="peekhint hidden" id="peekHint">ドラッグ・ホイール（ピンチ）で戦場を見回せます</div>
+  <button id="btnPeekBack" class="primary big peekback hidden">編成に戻る</button>
+  <div class="box wide compose">
+    <div class="cmphead">
+      <h2>部隊編成</h2>
+      <div class="budget"><span>予算</span><span class="bar"><i id="cmpBar"></i></span><span><b id="cmpCost">0</b> / <span id="cmpBudget">300</span></span></div>
+      <div class="cmpbtns"><button id="btnCmpBack" class="ghost">戻る</button><button id="btnCmpGo" class="primary">戦闘開始</button></div>
+    </div>
+    <div class="cmpcols">
+      <div>
+        <h3>自軍</h3>
+        <div id="cmpRows"></div>
+        <div class="presets"><span class="sub">ひな形：</span><span id="cmpPresets"></span></div>
+      </div>
+      <div class="cmpenemy">
+        <h3>敵軍：<span id="enName"></span></h3>
+        <div id="enRows"></div>
+        <p id="enHint" class="hint"></p>
+        <p class="note small">相性：騎馬→弓兵 ／ 弓兵→歩兵 ／ 歩兵・護衛→騎馬</p>
+        <button id="btnReroll" class="chip hidden">🎲 地形を変える</button>
+        <button id="btnPeek" class="chip hidden">🗺 戦場を見る</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 操作方法 -->
+<div id="howto" class="overlay hidden">
+  <div class="box wide">
+    <h2>操作方法</h2>
+    <div class="cols">
+      <div>
+        <h3>PC</h3>
+        <table>
+          <tr><td>味方を左クリック</td><td>その部隊を選択</td></tr>
+          <tr><td>地面を右クリック</td><td>選択中の部隊を移動</td></tr>
+          <tr><td>敵を右クリック</td><td>その敵の部隊を攻撃</td></tr>
+          <tr><td>1〜4キー</td><td>部隊を選択</td></tr>
+          <tr><td>マウスホイール</td><td>拡大・縮小</td></tr>
+          <tr><td>左ドラッグ</td><td>カメラ移動</td></tr>
+          <tr><td>Esc</td><td>ポーズ</td></tr>
+        </table>
+      </div>
+      <div>
+        <h3>スマートフォン（横画面）</h3>
+        <table>
+          <tr><td>味方をタップ</td><td>部隊を選択</td></tr>
+          <tr><td>地面をタップ</td><td>選択中の部隊を移動</td></tr>
+          <tr><td>敵をタップ</td><td>選択中の部隊で攻撃</td></tr>
+          <tr><td>ドラッグ</td><td>カメラ移動</td></tr>
+          <tr><td>2本指ピンチ</td><td>拡大・縮小</td></tr>
+          <tr><td>下の部隊カード</td><td>部隊を選択</td></tr>
+        </table>
+      </div>
+    </div>
+    <p class="note">選択は次に別の部隊を選ぶまで続きます。新しい命令は前の命令を上書きします。命令がないときは、その場で待機・防衛します。<br>
+      <span class="mk ally">1</span> 自軍の部隊（丸）　<span class="mk enemy"><i>歩</i></span> 敵の部隊（ひし形）　👑 王</p>
+    <p class="note"><b>兵種の相性（レベル2）</b>：騎馬兵 → 弓兵に強い ／ 弓兵 → 歩兵に強い ／ 歩兵・盾の護衛 → 騎馬兵に強い。<br>
+      騎馬兵は速く、走って突撃すると大きなダメージ。止まって斬り合うと弱いので、無防備な弓兵や手薄な王を狙おう。</p>
+    <p class="note"><b>地形（レベル4）</b>：<b>丘</b>…高い所から攻撃するとダメージが増え（高低差1mで+8%、最大+30%）、弓兵の矢も遠くまで届く。上り坂は遅い。
+      <b>森</b>…中を通る矢は枝に当たって止まりやすい（森の中の部隊は矢に強い）。騎馬兵は半分の速さ、ほかの兵も少し遅くなる。</p>
+    <button id="btnHowtoClose" class="primary">閉じる</button>
+  </div>
+</div>
+
+<!-- iPhone：全画面で遊ぶ方法（ホーム画面に追加） -->
+<div id="a2hs" class="overlay hidden">
+  <div class="box">
+    <h2>全画面で遊ぶには（iPhone）</h2>
+    <p class="note small" id="dispMode"></p>
+    <ol class="steps">
+      <li><b>前に追加したアイコン（WarSim・王を討て！）があれば、長押しして削除</b>（古い設定のまま残るため）</li>
+      <li>Safari でこのページを開き、<b>共有ボタン</b>（四角から矢印が出ているマーク <span class="share">⬆︎</span>）→「<b>ホーム画面に追加</b>」</li>
+      <li>追加の画面に「<b>Webアプリとして開く</b>」があれば<b>オン</b>にして「追加」</li>
+      <li>ホーム画面の <b>王を討て！</b> アイコンから起動（Safari のタブやアドレスバーが出なければ成功）</li>
+    </ol>
+    <p class="note small">iPhone の Safari は、ゲーム画面だけを全画面にする機能に対応していないため、この方法になります。<span class="lanonly">アイコンから起動するときも、PCで start_simple_server.bat を起動しておき、同じWi-Fiにつないでください。</span></p>
+    <button id="btnA2hsClose" class="primary">閉じる</button>
+  </div>
+</div>
+
+<!-- カウントダウン -->
+<div id="countdown" class="hidden"></div>
+
+<!-- ポーズ -->
+<div id="pause" class="overlay hidden">
+  <div class="box">
+    <h2>メニュー <span class="sub">（一時停止中）</span></h2>
+    <button id="btnResume" class="primary big">戦闘に戻る</button>
+    <div class="volrow"><button id="btnSoundP" class="ghost">効果音：オン</button><label>音量 <input id="volRange" type="range" min="0" max="100" step="5"></label></div>
+    <p class="sndstat note small"></p>
+    <button id="btnPauseHowto" class="ghost">操作方法</button>
+    <button id="btnFullP" class="ghost fsbtn">全画面</button>
+    <button id="btnQuit" class="ghost">タイトル（レベル選択）に戻る</button>
+  </div>
+</div>
+
+<!-- 結果 -->
+<div id="result" class="overlay hidden">
+  <div class="box">
+    <h1 id="resTitle">勝利</h1>
+    <p id="resReason"></p>
+    <div id="resStars" class="stars"></div>
+    <p id="resStats" class="note"></p>
+    <button id="btnRetry" class="primary big">再戦</button>
+    <button id="btnRecompose" class="ghost hidden">編成し直す</button>
+    <button id="btnToTitle" class="ghost">レベル選択へ</button>
+  </div>
+</div>
+
+<!-- 縦画面の案内 -->
+<div id="rotate" class="overlay">
+  <div class="box">
+    <div class="phone">📱</div>
+    <h2>横画面にしてください</h2>
+    <p class="note">このゲームは横画面で遊ぶように作られています。</p>
+  </div>
+</div>
+
+<div id="fatal" class="overlay hidden"><div class="box"><h2>エラー</h2><pre id="fatalText"></pre></div></div>
+
+<script src="js/config.js?v=20261028a"></script>
+<script src="js/sim.js?v=20261028a"></script>
+<script src="js/ai.js?v=20261028a"></script>
+<script src="js/render.js?v=20261028a"></script>
+<script src="js/ws_simple_rules.js?v=20261028a"></script>
+<script src="js/ws_simple_audio.js?v=20261028a"></script>
+<script src="js/ws_simple_app.js?v=20261028a"></script>
+</body>
+</html>
