@@ -122,8 +122,13 @@
     overlay('title', true); $('labels').innerHTML = ''; labelPool.length = 0;
     buildLevels();
   }
+  // アクセス解析（GoatCounter）：戦闘開始と結果の回数だけを数える。読み込まれていない・ローカルで開いたときは何もしない
+  function track(name, title) {
+    try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: name, title: title, event: true }); } catch (e) {}
+  }
   function startBattle() {
     newGame();
+    track('play-L' + App.level + '-' + App.diff, '戦闘開始 ' + SPEC.levels[App.level].name + ' ' + SPEC.difficulty[App.diff].name);
     ['title', 'pause', 'result', 'howto', 'compose'].forEach(function (id) { overlay(id, false); });
     showHud(true);
     App.phase = 'countdown'; App.cdT = SPEC.countdown; App.paused = false;
@@ -631,6 +636,7 @@
     $('resStats').textContent = '試合時間 ' + Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2) + '　生存：自軍 ' + r.alive[0] + '人・敵軍 ' + r.alive[1] + '人';
     overlay('pause', false); overlay('countdown', false); overlay('result', true);
     sfx(r.winner === 0 ? 'victory' : r.winner === 1 ? 'defeat' : 'draw');
+    track('result-L' + g.level + '-' + App.diff + '-' + (r.winner === 0 ? 'win' : r.winner === 1 ? 'lose' : 'draw'), '結果 ' + SPEC.levels[g.level].name + ' ' + g.diff.name + ' ' + t.textContent);
   }
   // 画面サイズ・向きの変更：全体が見える距離を計算し直す
   window.addEventListener('resize', function () {
